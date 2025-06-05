@@ -74,6 +74,96 @@ export async function POST(request) {
   }
 }
 
+export async function PUT(request) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user || !session.user.id || !session.user.companyId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const templateId = request?.nextUrl?.searchParams?.get("id");
+
+if(!templateId){
+            return NextResponse.json({ message: "Template not found." },{status:404});
+        }
+
+    const body = await request.json();
+    const {
+      name,
+      description,
+      sections,
+      placeholders,
+      tags
+    } = body;
+
+    if (!name || name.trim() === "") {
+      return NextResponse.json({ message: "Template name is required." }, { status: 400 });
+    }
+    if (!sections || !Array.isArray(sections) || sections.length === 0) {
+      return NextResponse.json({ message: "Template content (sections) is required." }, { status: 400 });
+    }
+    for (const section of sections) {
+        if (!section.content || (section.content_type === 'quill_delta' && (!section.content.ops || section.content.ops.length === 0))) {
+            return NextResponse.json({ message: "Section content cannot be empty." }, { status: 400 });
+        }
+    }
+
+    const { db } = await connectToDatabase();
+
+    const companyIdAsObjectId = new ObjectId(session.user.companyId);
+    const userIdAsObjectId = new ObjectId(session.user.id);
+
+    const newTemplateDocument = {
+      name,
+      description: description || "",
+      company_id: companyIdAsObjectId,
+      created_by_user_id: userIdAsObjectId,
+      sections: sections.map(section => ({
+        _id: new ObjectId(templateId),
+        title: section.title || null,
+        order: section.order || 0,
+        content_type: section.content_type || "quill_delta",
+        content: section.content,
+      })),
+      placeholders: placeholders || [],
+      tags: tags || [],
+      version: 1,
+      is_default_for_company: false,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    const result = await db.collection('templates').findOneAndUpdate({_id:new ObjectId(templateId),company_id:companyIdAsObjectId},{
+      "$set":{name: name,
+      description: description,
+      created_by_user_id: userIdAsObjectId,
+      sections: sections.map(section => ({
+        _id: new ObjectId(),
+        title: section.title || null,
+        order: section.order || 0,
+        content_type: section.content_type || "quill_delta",
+        content: section.content,
+      })),
+      placeholders: placeholders || [],
+      tags: tags || [],
+    updated_at: new Date()},
+      "$inc":{version:1},
+    },{upsert:true});
+    
+    if (!result) {
+        throw new Error("Failed to insert template into database.");
+    }
+
+    const savedTemplate = await db.collection('templates').findOne({ _id: result.insertedId });
+
+    return NextResponse.json({ message: "Template saved successfully!", data: savedTemplate }, { status: 201 });
+
+  } catch (error) {
+    console.error("API Error - Save Template:", error);
+    return NextResponse.json({ message: "Failed to save template.", error: error.message }, { status: 500 });
+  }
+}
 
 export async function GET(request) {
   try {

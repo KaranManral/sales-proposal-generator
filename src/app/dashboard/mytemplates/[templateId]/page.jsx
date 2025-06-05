@@ -118,7 +118,7 @@ export default function ViewTemplatePage() {
           </Link>
           <div className="flex space-x-3">
             {/* TODO: Link to an edit page for this template */}
-            <Link href={`/dashboard/mytemplates/edit/${template._id}`} className="p-2 text-gray-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors">
+            <Link href={`/edit-template/${template._id}`} className="p-2 text-gray-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors">
                 <FaEdit size={20} title="Edit Template" />
             </Link>
             <button onClick={handleDeleteTemplate} className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-100 transition-colors">

@@ -5,7 +5,7 @@ import { authOptions } from "@lib/authOptions";
 import { ObjectId } from "mongodb";
 
 export async function GET(request, { params }) {
-  const { templateId } = params;
+  const { templateId } = await params;
 
   try {
     const session = await getServerSession(authOptions);
@@ -45,44 +45,40 @@ export async function GET(request, { params }) {
   }
 }
 
-// export async function DELETE(request, { params }) {
-//     const { templateId } = params;
-//     let dbClient;
+export async function DELETE(request, { params }) {
+    const { templateId } = await params;
 
-//     try {
-//         const session = await getServerSession(authOptions);
-//         if (!session || !session.user || !session.user.id || !session.user.companyId) {
-//             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-//         }
-//         if (!templateId) {
-//             return NextResponse.json({ message: "Template ID is required." }, { status: 400 });
-//         }
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user || !session.user.id || !session.user.companyId) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        }
+        if (!templateId) {
+            return NextResponse.json({ message: "Template ID is required." }, { status: 400 });
+        }
 
-//         const { db, ObjectId } = await connectToDatabase();
-//         dbClient = (await connectToDatabase()).client;
+        const { db } = await connectToDatabase();
 
-//         let templateObjectId;
-//         try {
-//             templateObjectId = new ObjectId(templateId);
-//         } catch (e) {
-//             return NextResponse.json({ message: "Invalid template ID format." }, { status: 400 });
-//         }
+        let templateObjectId;
+        try {
+            templateObjectId = new ObjectId(templateId);
+        } catch (e) {
+            return NextResponse.json({ message: "Invalid template ID format." }, { status: 400 });
+        }
 
-//         const result = await db.collection('templates').deleteOne({
-//             _id: templateObjectId,
-//             company_id: new ObjectId(session.user.companyId) // Security: only delete if it belongs to their company
-//         });
+        const result = await db.collection('templates').deleteOne({
+            _id: templateObjectId,
+            company_id: new ObjectId(session.user.companyId)
+        });
 
-//         if (result.deletedCount === 0) {
-//             return NextResponse.json({ message: "Template not found or you do not have permission to delete it." }, { status: 404 });
-//         }
+        if (result.deletedCount === 0) {
+            return NextResponse.json({ message: "Template not found or you do not have permission to delete it." }, { status: 404 });
+        }
 
-//         return NextResponse.json({ message: "Template deleted successfully." }, { status: 200 });
+        return NextResponse.json({ message: "Template deleted successfully." }, { status: 200 });
 
-//     } catch (error) {
-//         console.error("API Error - Delete Template:", error);
-//         return NextResponse.json({ message: "Failed to delete template.", error: error.message }, { status: 500 });
-//     } finally {
-//         // Optional: await closeDatabaseConnection();
-//     }
-// }
+    } catch (error) {
+        console.error("API Error - Delete Template:", error);
+        return NextResponse.json({ message: "Failed to delete template.", error: error.message }, { status: 500 });
+    }
+}
