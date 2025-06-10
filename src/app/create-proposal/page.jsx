@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Header from '@app/components/Header';
 import TemplateSelector from '@app/components/TemplateSelector';
+import { transformDeltaForEditablePlaceholders } from '@app/utils/transformDelta';
 
 const QuillEditor = dynamic(
   () => import('@app/components/editor'),
@@ -25,6 +26,7 @@ export default function CreateProposalPage() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [availableTemplates, setAvailableTemplates] = useState([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [readOnlyMainEditor,setReadOnlyMainEditor] = useState(false);
 
   // Fetch available templates
   useEffect(() => {
@@ -55,49 +57,32 @@ export default function CreateProposalPage() {
 
 
   const handleEditorChange = (contentValue, delta, source, editor) => {
-    setEditorContent(contentValue);
+    setEditorContent(editor.getContents());
   };
 
   const handleSelectTemplate = (template) => {
     setSelectedTemplate(template);
-    if (template.content_type === "html") {
+    if (template?.sections[0]?.content_type === "html") {
+      console.warn("HTML content types not yet supported for editable placeholders.");
       setEditorContent(template.content); // Load HTML content
-    } else if (template.content_type === "quill_delta") {
-      // If content is Delta, your QuillEditor should handle it via `value` prop
-      // Or, you might need to use quillInstanceRef.current.getEditor().setContents(template.content)
-      setEditorContent(template.content);
+    } else if (template?.sections[0]?.content_type === "quill_delta") {
+      const deltaWithBlots = transformDeltaForEditablePlaceholders(
+      template.sections[0].content,
+      template.placeholders
+    );
+  
+    if(template.placeholders && template.placeholders.length>0)
+      setReadOnlyMainEditor(true);
+    else
+      setReadOnlyMainEditor(false);
+    setEditorContent(deltaWithBlots);
+      // setEditorContent(template.sections[0].content);
     }
-    // You might want to pre-fill proposalTitle based on template name or other logic
-    setProposalTitle(`Proposal for ${clientName || '[Client]'} based on ${template.name}`);
-  };
-
-  const processPlaceholders = (content, clientName) => {
-    // Basic placeholder replacement - extend as needed
-    let processedContent = content;
-    if (typeof content === 'string') { // For HTML content
-        processedContent = processedContent.replace(/\{\{CLIENT_COMPANY_NAME\}\}/g, clientName || "[Client Company Name]");
-        processedContent = processedContent.replace(/\{\{PRODUCT_NAME\}\}/g, "[Product Name Placeholder]"); // Example
-        // Replace {{USER_NOTES_HERE_...}} with something to indicate an editable area
-        // This is where it gets tricky. For a single editor, these become part of the editable content.
-        // You might replace them with a visually distinct placeholder text or a specific style.
-        processedContent = processedContent.replace(/\{\{USER_NOTES_HERE_(\d+)\}\}/g,
-            (match, num) => `<p class="user-notes-placeholder"><em>[Add your notes for section ${num} here...]</em></p>`);
-        processedContent = processedContent.replace(/\{\{USER_NOTES_SECTION_(\d+)_TITLE\}\}/g,
-            (match, num) => `<!-- User Notes Section ${num} Title Placeholder -->`);
-
-    } else if (typeof content === 'object' && content.ops) { // For Delta content
-        // Placeholder replacement in Delta is more complex. You'd iterate through ops.
-        // For simplicity, this example assumes HTML content for templates initially.
-        console.warn("Placeholder replacement for Delta content is not fully implemented in this example.");
-    }
-    return processedContent;
   };
 
   useEffect(() => {
-    if (selectedTemplate) {
-        const processed = processPlaceholders(selectedTemplate.content, clientName);
-        setEditorContent(processed);
-    }
+    setProposalTitle(`Proposal for ${clientName || '[Client]'} based on ${selectedTemplate?.name}`);
+    
   }, [clientName, selectedTemplate]);
 
   const handleSaveProposal = async () => {
@@ -144,6 +129,14 @@ export default function CreateProposalPage() {
           </div>
 
           <div className="lg:col-span-9 xl:col-span-9 bg-white p-4 sm:p-6 rounded-lg shadow">
+            <div className="mb-6 text-right">
+              <button
+                onClick={handleSaveProposal}
+                className="px-6 py-2.5 bg-purple-600 text-white font-semibold rounded-md shadow-md cursor-pointer hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+              >
+                Save Proposal
+              </button>
+            </div>
             <div className="mb-4">
               <label htmlFor="proposalTitle" className="block text-sm font-medium text-gray-700 mb-1">
                 Proposal Title
@@ -174,18 +167,12 @@ export default function CreateProposalPage() {
             <div className="mb-1 text-sm font-medium text-gray-700">Proposal Content</div>
             <div className="border border-gray-300 rounded-md overflow-hidden min-h-[500px]">
               <QuillEditor
-                value={editorContent}
+                key={selectedTemplate?._id||'blank'}
+                initialDelta={editorContent}
+                readOnlyMainEditor={readOnlyMainEditor}
                 onChange={handleEditorChange}
                 placeholder="Select a template or start writing..."
               />
-            </div>
-            <div className="mt-6 text-right">
-              <button
-                onClick={handleSaveProposal}
-                className="px-6 py-2.5 bg-purple-600 text-white font-semibold rounded-md shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-              >
-                Save Proposal
-              </button>
             </div>
           </div>
         </div>

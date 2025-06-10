@@ -47,7 +47,7 @@ export default function CreateTemplate() {
     if (delta && delta.ops) {
         delta.ops.forEach(op => {
             if (typeof op.insert === 'string') {
-                const matches = op.insert.match(/\{\{([A-Z0-9_]+)\}\}/g);
+                const matches = op.insert.match(/\{\{([A-Za-z0-9_ ]+)\}\}/g);
                 if (matches) {
                     matches.forEach(match => {
                         const placeholderName = match.substring(2, match.length - 2);
@@ -144,7 +144,7 @@ export default function CreateTemplate() {
   const formats = [
     'header', 'font', 'size',
     'bold', 'italic', 'underline', 'strike', 'blockquote',
-    'list', 'bullet', 'indent',
+    'list', 'indent',
     'link', 'table', 'color', 'background', 'align'
   ];
 

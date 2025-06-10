@@ -32,9 +32,9 @@ export default function QuillViewer({ deltaContent, className }) {
         formats={[
             'header', 'font', 'size',
             'bold', 'italic', 'underline', 'strike', 'blockquote',
-            'list', 'bullet', 'indent',
+            'list', 'indent',
             'link', 'image', 'video', 'color', 'background', 'align',
-            'table', 'table-cell-line', 'table-cell-background-color'
+            'table',
         ]}
       />
       {/* Add custom styling for read-only view if needed */}

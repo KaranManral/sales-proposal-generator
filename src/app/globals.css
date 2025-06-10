@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.ql-editable-placeholder{
+  display: inline-block;
+  width: 10rem;
+  background-color: rgb(231, 231, 231);
+  border: 1px solid black;
+  border-radius: 6px;
+  padding-left: 2.5px;
+  padding-right: 2.5px;
+}
